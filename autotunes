@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+import os.path
+import argparse
+import beets.ui
+from beets import config
+from beets.autotag import mb
+from beets.ui.commands import TerminalImportSession
+from beets.ui import print_, input_, decargs, show_path_changes, commands
+from beets import importer
+from beets.util import syspath, normpath, ancestry, displayable_path, pipeline
+from beets import plugins
+from pprint import pprint
+from beets.autotag import Recommendation
+
+
+class NoneDict(dict):
+    def __getitem__(self, key):
+        return self.get(key)
+
+@pipeline.stage
+def resolve_duplicates(session, task):
+    # TODO: check if it's already been uploaded
+    return task
+
+
+@pipeline.stage
+def user_query(session, task):
+    """A coroutine for interfacing with the user about the tagging
+    process.
+
+    The coroutine accepts an ImportTask objects. It uses the
+    session's `choose_match` method to determine the `action` for
+    this task. Depending on the action additional stages are executed
+    and the processed task is yielded.
+
+    It emits the ``import_task_choice`` event for plugins. Plugins have
+    acces to the choice via the ``taks.choice_flag`` property and may
+    choose to change it.
+    """
+    if not task or task.skip: return
+    if task.rec == Recommendation.strong:
+        upload_album(session, task)
+    else:
+        # TODO
+        return
+        # Ask the user for a choice.
+        #choose_match(session, task)
+        #resolve_duplicates(session, task)
+
+
+
+@pipeline.stage
+def lookup_candidates(session, task):
+    if not task or task.skip: return
+    task.lookup_candidates()
+    return task
+
+
+def upload_album(session, task):
+    choice = commands.choose_candidate(
+        task.candidates, False, task.rec, task.cur_artist, task.cur_album,
+        itemcount=len(task.items))
+    pprint(choice.info.__dict__)
+
+
+class UploadSession(TerminalImportSession):
+    def __init__(self, paths):
+        self.want_resume = False
+        self.config = NoneDict()
+        super().__init__(None, None, paths, None)
+
+    def run(self):
+        stages = [
+            importer.read_tasks(self),
+            lookup_candidates(self),
+            user_query(self)
+        ]
+        pl = pipeline.Pipeline(stages)
+        pl.run_parallel(importer.QUEUE_SIZE)
+
+
+def upload_files(paths):
+    for path in paths:
+        if not os.path.exists(syspath(normpath(path))):
+            raise beets.ui.UserError(u'no such file or directory: {0}'.format(
+                displayable_path(path)))
+
+
+    session = UploadSession(paths)
+    session.run()
+
+
+def autotunes_main(args, lib=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("album", help="path to the album you want to upload", nargs="+")
+    args = parser.parse_args()
+    mb.configure()
+    upload_files(args.album)
+
+
+beets.ui._raw_main = autotunes_main
+
+if __name__ == "__main__":
+    beets.ui.main()

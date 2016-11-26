@@ -1,0 +1,2 @@
+git+git://github.com/beetbox/beets.git
+discogs-client==2.2.1
