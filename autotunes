@@ -11,6 +11,8 @@ from beets.util import syspath, normpath, ancestry, displayable_path, pipeline
 from beets import plugins
 from pprint import pprint
 from beets.autotag import Recommendation
+import whatapi
+import requests
 
 
 class NoneDict(dict):
@@ -60,13 +62,23 @@ def upload_album(session, task):
     choice = commands.choose_candidate(
         task.candidates, False, task.rec, task.cur_artist, task.cur_album,
         itemcount=len(task.items))
-    pprint(choice.info.__dict__)
+    data, files = whatapi.create_upload_request(
+        "dsfoijasdfoijasdf random auth",
+        choice.info,
+        ("mytorrent.torrent", "torrent contents"),
+        [("mylog.log", "logfile1 contents"), ("mylog2.log", "logfile2 contents")],
+        ["ambient", "electronic"],
+        "http://example.org/example.jpg"
+    )
+    url = "http://requestb.in/1ktwnu81"
+    requests.post(url, data=data, files=files, headers=whatapi.headers)
 
 
 class UploadSession(TerminalImportSession):
     def __init__(self, paths):
         self.want_resume = False
         self.config = NoneDict()
+        #self.api = new whatapi.WhatAPI(username, password)
         super().__init__(None, None, paths, None)
 
     def run(self):
@@ -84,7 +96,6 @@ def upload_files(paths):
         if not os.path.exists(syspath(normpath(path))):
             raise beets.ui.UserError(u'no such file or directory: {0}'.format(
                 displayable_path(path)))
-
 
     session = UploadSession(paths)
     session.run()
