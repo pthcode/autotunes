@@ -23,3 +23,8 @@ Automate your music uploads.
 * Only works with FLAC for now.
 * autotunes is provided for demonstration purposes only.
 * feat. artists are not correctly parsed yet.
+
+### Roadmap ###
+
+* Apply correct metadata to torrents.
+* Update the folder name to Artist - Album (ReleaseYear) [Format] {CatalogNum}
