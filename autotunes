@@ -12,9 +12,25 @@ from beets import plugins
 from pprint import pprint
 from beets.autotag import Recommendation
 from beetsplug.fetchart import FetchArtPlugin, CoverArtArchive, AlbumArtOrg, Amazon, Wikipedia, FanartTV
+from beetsplug.lastgenre import LastGenrePlugin, LASTFM
 import whatapi
 import requests
 import sys
+
+lastgenre = LastGenrePlugin()
+valid_tags = set(['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', 'alternative', 'ambient', 'black.metal', 'blues', 'classical', 'comedy', 'country', 'death.metal', 'deep.house', 'downtempo', 'drum.and.bass', 'dub', 'dubstep', 'electronic', 'experimental', 'folk', 'funk', 'gospel', 'grime', 'heavy.metal', 'hip.hop', 'house', 'idm', 'indie', 'instrumental', 'jazz', 'live', 'metal', 'noise', 'pop', 'pop.rock', 'post.punk', 'progressive.rock', 'psychedelic', 'punk', 'reggae', 'rhythm.and.blues', 'rock', 'shoegaze', 'ska', 'soul', 'synth.pop', 'techno', 'trance', 'video.game'])
+def get_tags(album):
+    last_obj = LASTFM.get_album(album.albumartist, album.album)
+    result = set()
+    for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int)):
+        if tag in valid_tags:
+            result.add(tag)
+    if len(result) < 3:
+        last_obj = LASTFM.get_artist(album.albumartist)
+        for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int)):
+            if tag in valid_tags:
+                result.add(tag)
+    return list(result)
 
 class AutotunesFetchArt(FetchArtPlugin):
     def __init__(self):
@@ -95,7 +111,7 @@ def upload_album(session, task):
             image_url += '#.jpg'
     else:
         image_url = ""
-    tags = input('tags: ').strip().split(', ')
+    tags = get_tags(album)
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
     session.api.upload(album_dir, choice.info, tags, image_url)
 
