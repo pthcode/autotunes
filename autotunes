@@ -13,6 +13,7 @@ from pprint import pprint
 from beets.autotag import Recommendation
 import whatapi
 import requests
+import sys
 
 
 class NoneDict(dict):
@@ -62,23 +63,17 @@ def upload_album(session, task):
     choice = commands.choose_candidate(
         task.candidates, False, task.rec, task.cur_artist, task.cur_album,
         itemcount=len(task.items))
-    data, files = whatapi.create_upload_request(
-        "dsfoijasdfoijasdf random auth",
-        choice.info,
-        ("mytorrent.torrent", "torrent contents"),
-        [("mylog.log", "logfile1 contents"), ("mylog2.log", "logfile2 contents")],
-        ["ambient", "electronic"],
-        "http://example.org/example.jpg"
-    )
-    url = "http://requestb.in/1ktwnu81"
-    requests.post(url, data=data, files=files, headers=whatapi.headers)
+    tags = input('tags: ').strip().split(', ')
+    image_url = input('image: ').strip()
+    album_dir = task.toppath.decode(sys.getfilesystemencoding())
+    session.api.upload(album_dir, choice.info, tags, image_url)
 
 
 class UploadSession(TerminalImportSession):
-    def __init__(self, paths):
+    def __init__(self, paths, username, password):
         self.want_resume = False
         self.config = NoneDict()
-        #self.api = new whatapi.WhatAPI(username, password)
+        self.api = whatapi.WhatAPI(username, password)
         super().__init__(None, None, paths, None)
 
     def run(self):
@@ -91,22 +86,24 @@ class UploadSession(TerminalImportSession):
         pl.run_parallel(importer.QUEUE_SIZE)
 
 
-def upload_files(paths):
+def upload_files(paths, username, password):
     for path in paths:
         if not os.path.exists(syspath(normpath(path))):
             raise beets.ui.UserError(u'no such file or directory: {0}'.format(
                 displayable_path(path)))
 
-    session = UploadSession(paths)
+    session = UploadSession(paths, username, password)
     session.run()
 
 
 def autotunes_main(args, lib=None):
     parser = argparse.ArgumentParser()
+    parser.add_argument("username")
     parser.add_argument("album", help="path to the album you want to upload", nargs="+")
     args = parser.parse_args()
     mb.configure()
-    upload_files(args.album)
+    password = input("password: ")
+    upload_files(args.album, args.username, password)
 
 
 beets.ui._raw_main = autotunes_main

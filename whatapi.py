@@ -4,6 +4,7 @@ import os
 import time
 import string
 import requests
+import subprocess
 
 headers = {
     'Connection': 'keep-alive',
@@ -55,37 +56,84 @@ def album_description(album):
         track_list=track_list
     )
 
+def album_release_type(album):
+    return {
+        "album": 1,
+        "soundtrack": 3,
+        "ep": 5,
+        "compilation": 7,
+        "single": 9
+    }[album.albumtype]
+
+def album_media(album):
+    return {
+        "CD": "CD",
+    }[album.media]
+
 def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
     artists = album_artists(album)
     data = {
+        "submit": "true",  # the submit button
         "auth": auth,  # input name=auth on upload page - appears to not change
         "type": 0,  # music
         "artists[]": artists,
-        "importance[]": [0 for _ in artists],  # list of 0 for all main artists
+        "importance[]": [1 for _ in artists],  # list of 0 for all main artists
         "title": album.album,
         "year": album.original_year,
         "record_label": "",  # optional
         "catalogue_number": "",  # optional
+        "releasetype": album_release_type(album),
         "remaster": "on",  # if it's a remaster, off otherwise
+        "remaster_year": album.year,
         "remaster_title": "",  # optional
         "remaster_record_label": album.label,  # optional
         "remaster_catalogue_number": album.catalognum,  # optional
-        "format": "FLAC",
-        "bitrate": "Lossless",
+        "format": "FLAC",  # TODO: analyze files
+        "bitrate": "Lossless",  # TODO: analyze files
         "other_bitrate": "",  # n/a
-        "media": "CD",  # or WEB, Vinyl, etc. TODO: figure it out from album.media
+        "media": album_media(album),  # or WEB, Vinyl, etc.
         "genre_tags": tags[0],  # blank - this is the dropdown of official tags
         "tags": ", ".join(tags),  # classical, hip.hop, etc. (comma separated)
         "image": artwork_url,  # optional
         "album_desc": album_description(album),
         "release_desc": "Uploaded with [url=https://bitbucket.org/whatbetter/autotunes]autotunes[/url]."
     }
-    files = [
-        ("file_input", torrent),
-    ]
+    files = []
     for logfile in logfiles:
         files.append(("logfiles[]", logfile))
+    files.append(("file_input", torrent))
     return data, files
+
+def locate(root, match_function, ignore_dotfiles=True):
+    '''
+    Yields all filenames within the root directory for which match_function returns True.
+    '''
+    for path, dirs, files in os.walk(root):
+        for filename in (os.path.abspath(os.path.join(path, filename)) for filename in files if match_function(filename)):
+            if ignore_dotfiles and os.path.basename(filename).startswith('.'):
+                pass
+            else:
+                yield filename
+
+def ext_matcher(*extensions):
+    '''
+    Returns a function which checks if a filename has one of the specified extensions.
+    '''
+    return lambda f: os.path.splitext(f)[-1].lower() in extensions
+
+def make_torrent(input_dir, output_dir, tracker, passkey):
+    torrent = os.path.join(output_dir, os.path.basename(input_dir)) + ".torrent"
+    if os.path.exists(torrent):
+        os.remove(torrent)
+    if not os.path.exists(os.path.dirname(torrent)):
+        os.path.makedirs(os.path.dirname(torrent))
+    tracker_url = '%(tracker)s%(passkey)s/announce' % {
+        'tracker' : tracker,
+        'passkey' : passkey,
+    }
+    command = ["mktorrent", "-p", "-a", tracker_url, "-o", torrent, input_dir]
+    subprocess.check_output(command, stderr=subprocess.STDOUT)
+    return torrent
 
 class LoginException(Exception):
     pass
@@ -189,12 +237,24 @@ class WhatAPI:
                 done = 'Next &gt;' not in content
                 page += 1
 
-    def upload(self, auth, album, torrent, logfiles, tags, artwork_url):
-        url = "http://requestb.in/1ktwnu81"
+    def upload(self, album_dir, album, tags, artwork_url):
+        url = "https://passtheheadphones.me/upload.php"
+        torrent = make_torrent(album_dir, "/tmp", self.tracker, self.passkey)
+        torrent = (os.path.basename(torrent), open(torrent, 'rb'), "application/octet-stream")
+        logfiles = locate(album_dir, ext_matcher('.log'))
+        logfiles = [(os.path.basename(logfile), open(logfile, 'rb'), "application/octet-stream") for logfile in logfiles]
+        r = self.session.get(url)
+        auth = re.search('name="auth" value="([^"]+)"', r.text).group(1)
         data, files = create_upload_request(auth, album, torrent, logfiles, tags, artwork_url)
-
-        # post as multipart/form-data
-        return self.session.post(url, data=data, files=files, headers=dict(headers))
+        upload_headers = dict(headers)
+        upload_headers["referer"] = url
+        upload_headers["origin"] = url.rsplit("/", 1)[0]
+        r = self.session.post(url, data=data, files=files, headers=upload_headers)
+        if "torrent has been uploaded" not in r.text:
+            from pprint import pprint
+            print("upload failed.")
+            pprint(r.headers)
+            print(r.text)
 
     def release_url(self, group, torrent):
         return "https://passtheheadphones.me/torrents.php?id=%s&torrentid=%s#torrent%s" % (group['group']['id'], torrent['id'], torrent['id'])
