@@ -64,6 +64,7 @@ def album_release_type(album):
         "compilation": 7,
         "single": 9,
         "live": 11,
+        "other": 1,
         None: 1
     }[album.albumtype]
 
