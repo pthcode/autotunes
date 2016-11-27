@@ -70,6 +70,7 @@ def album_release_type(album):
 def album_media(album):
     return {
         "CD": "CD",
+        "CD-R": "CD",
         "Enhanced CD": "CD",
         "Vinyl": "Vinyl",
         "12\" Vinyl": "Vinyl",
