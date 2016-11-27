@@ -10,7 +10,7 @@ from beets import importer
 from beets.util import syspath, normpath, ancestry, displayable_path, pipeline
 from beets import plugins
 from pprint import pprint
-from beets.autotag import Recommendation
+from beets.autotag import Recommendation, AlbumMatch
 from beetsplug.fetchart import FetchArtPlugin, CoverArtArchive, AlbumArtOrg, Amazon, Wikipedia, FanartTV
 from beetsplug.lastgenre import LastGenrePlugin, LASTFM
 import whatapi
@@ -85,8 +85,11 @@ def user_query(session, task):
     acces to the choice via the ``taks.choice_flag`` property and may
     choose to change it.
     """
-    if not task or task.skip: return
+    if not task or task.skip:
+        return
     choice = session.choose_match(task)
+    if not isinstance(choice, AlbumMatch):
+        return
     if not choice.info.year and not choice.info.original_year:
         choice.info.original_year = choice.info.year = get_year(task.toppath)
     #resolve_duplicates(session, task)
