@@ -30,7 +30,7 @@ def get_tags(album):
         for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int)):
             if tag in valid_tags:
                 result.add(tag)
-    return list(result)
+    return list(result)[:10]
 
 class AutotunesFetchArt(FetchArtPlugin):
     def __init__(self):
@@ -112,6 +112,8 @@ def upload_album(session, task):
     else:
         image_url = ""
     tags = get_tags(album)
+    if len(tags) == 0:
+        tags = input("tags: ")
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
     session.api.upload(album_dir, choice.info, tags, image_url)
 

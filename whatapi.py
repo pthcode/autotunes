@@ -69,6 +69,7 @@ def album_release_type(album):
 def album_media(album):
     return {
         "CD": "CD",
+        "Enhanced CD": "CD",
         "Vinyl": "Vinyl",
         "12\" Vinyl": "Vinyl",
         "Digital Media": "WEB",
@@ -96,7 +97,7 @@ def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
         ("other_bitrate", ""),  # n/a
         ("media", album_media(album)),  # or WEB, Vinyl, etc.
         ("genre_tags", tags[0]),  # blank - this is the dropdown of official tags
-        ("tags", "), ".join(tags)),  # classical, hip.hop, etc. (comma separated)
+        ("tags", ", ".join(tags)),  # classical, hip.hop, etc. (comma separated)
         ("image", artwork_url),  # optional
         ("album_desc", album_description(album)),
         ("release_desc", "Uploaded with [url=https://bitbucket.org/whatbetter/autotunes]autotunes[/url].")
