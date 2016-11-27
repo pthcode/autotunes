@@ -16,3 +16,9 @@ Automate your music uploads.
 3. Install autotunes and its dependencies with `sudo pip install </path/to/autotunes>`.
 4. Run `autotunes -o <watch_dir> <username> /path/to/album`, enter your password, and autotunes will do its magic.
 5. You can specify multiple albums at a time.
+
+### Disclaimer ###
+
+* Dupe-checking is not yet implemented.
+* Only works with FLAC for now.
+* autotunes is provided for demonstration purposes only.
