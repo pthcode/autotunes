@@ -16,21 +16,26 @@ from beetsplug.lastgenre import LastGenrePlugin, LASTFM
 import whatapi
 import requests
 import sys
+import re
+
+
+def get_year(path):
+    return int(re.search('\d{4}', path.decode(sys.getfilesystemencoding())).group(0))
 
 lastgenre = LastGenrePlugin()
 valid_tags = set(['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', 'alternative', 'ambient', 'black.metal', 'blues', 'classical', 'comedy', 'country', 'death.metal', 'deep.house', 'downtempo', 'drum.and.bass', 'dub', 'dubstep', 'electronic', 'experimental', 'folk', 'funk', 'gospel', 'grime', 'heavy.metal', 'hip.hop', 'house', 'idm', 'indie', 'instrumental', 'jazz', 'live', 'metal', 'noise', 'pop', 'pop.rock', 'post.punk', 'progressive.rock', 'psychedelic', 'punk', 'reggae', 'rhythm.and.blues', 'rock', 'shoegaze', 'ska', 'soul', 'synth.pop', 'techno', 'trance', 'video.game'])
 def get_tags(album):
     last_obj = LASTFM.get_album(album.albumartist, album.album)
     result = set()
-    for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int)):
+    for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int))[:3]:
         if tag in valid_tags:
             result.add(tag)
-    if len(result) < 3:
+    if len(result) < 2:
         last_obj = LASTFM.get_artist(album.albumartist)
-        for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int)):
+        for tag in lastgenre._tags_for(last_obj, lastgenre.config['min_weight'].get(int))[:3]:
             if tag in valid_tags:
                 result.add(tag)
-    return list(result)[:10]
+    return list(result)[:5]
 
 class AutotunesFetchArt(FetchArtPlugin):
     def __init__(self):
@@ -81,14 +86,11 @@ def user_query(session, task):
     choose to change it.
     """
     if not task or task.skip: return
-    if task.rec == Recommendation.strong:
-        upload_album(session, task)
-    else:
-        # TODO
-        return
-        # Ask the user for a choice.
-        #choose_match(session, task)
-        #resolve_duplicates(session, task)
+    choice = session.choose_match(task)
+    if not choice.info.year and not choice.info.original_year:
+        choice.info.original_year = choice.info.year = get_year(task.toppath)
+    #resolve_duplicates(session, task)
+    upload_album(session, task, choice)
 
 
 
@@ -99,10 +101,7 @@ def lookup_candidates(session, task):
     return task
 
 
-def upload_album(session, task):
-    choice = commands.choose_candidate(
-        task.candidates, False, task.rec, task.cur_artist, task.cur_album,
-        itemcount=len(task.items))
+def upload_album(session, task, choice):
     album = AlbumInfoToAlbum(choice.info)
     image = fetchart.art_for_album(album, task.paths, False)
     if image and image.url:
@@ -113,7 +112,7 @@ def upload_album(session, task):
         image_url = ""
     tags = get_tags(album)
     if len(tags) == 0:
-        tags = input("tags: ")
+        tags = input("tags: ").split(", ")
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
     session.api.upload(album_dir, choice.info, tags, image_url)
 

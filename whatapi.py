@@ -74,6 +74,7 @@ def album_media(album):
         "12\" Vinyl": "Vinyl",
         "Digital Media": "WEB",
         "HDCD": "SACD",
+        None: "CD",
     }[album.media]
 
 def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
