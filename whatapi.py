@@ -69,6 +69,9 @@ def album_release_type(album):
 def album_media(album):
     return {
         "CD": "CD",
+        "Vinyl": "Vinyl",
+        "12\" Vinyl": "Vinyl",
+        "Digital Media": "WEB",
     }[album.media]
 
 def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
