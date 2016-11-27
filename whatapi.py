@@ -75,6 +75,7 @@ def album_media(album):
         "12\" Vinyl": "Vinyl",
         "Digital Media": "WEB",
         "HDCD": "SACD",
+        "Hybrid SACD": "SACD",
         None: "CD",
     }[album.media]
 
