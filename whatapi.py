@@ -139,7 +139,7 @@ def make_torrent(input_dir, output_dir, tracker, passkey):
         'tracker' : tracker,
         'passkey' : passkey,
     }
-    command = ["mktorrent", "-p", "-a", tracker_url, "-o", torrent, input_dir]
+    command = ["mktorrent", "-p", "-s", "PTH", "-a", tracker_url, "-o", torrent, input_dir]
     subprocess.check_output(command, stderr=subprocess.STDOUT)
     return torrent
 
@@ -245,9 +245,9 @@ class WhatAPI:
                 done = 'Next &gt;' not in content
                 page += 1
 
-    def upload(self, album_dir, album, tags, artwork_url):
+    def upload(self, album_dir, output_dir, album, tags, artwork_url):
         url = "https://passtheheadphones.me/upload.php"
-        torrent = make_torrent(album_dir, "/tmp", self.tracker, self.passkey)
+        torrent = make_torrent(album_dir, output_dir, self.tracker, self.passkey)
         torrent = ('torrent.torrent', open(torrent, 'rb'), "application/octet-stream")
         logfiles = locate(album_dir, ext_matcher('.log'))
         logfiles = [(str(i) + '.log', open(logfile, 'rb'), "application/octet-stream") for i, logfile in enumerate(logfiles)]
@@ -258,7 +258,7 @@ class WhatAPI:
         upload_headers["referer"] = url
         upload_headers["origin"] = url.rsplit("/", 1)[0]
         r = self.session.post(url, data=data, files=files, headers=upload_headers)
-        if "torrent has been uploaded" not in r.text:
+        if "torrent_comments" not in r.text:
             from pprint import pprint
             print("upload failed.")
             pprint(album.__dict__)

@@ -117,13 +117,14 @@ def upload_album(session, task, choice):
     if len(tags) == 0:
         tags = input("tags: ").split(", ")
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
-    session.api.upload(album_dir, choice.info, tags, image_url)
+    session.api.upload(album_dir, session.output_dir, choice.info, tags, image_url)
 
 
 class UploadSession(TerminalImportSession):
-    def __init__(self, paths, username, password):
+    def __init__(self, paths, output_dir, username, password):
         self.want_resume = False
         self.config = NoneDict()
+        self.output_dir = output_dir
         self.api = whatapi.WhatAPI(username, password)
         super().__init__(None, None, paths, None)
 
@@ -137,24 +138,25 @@ class UploadSession(TerminalImportSession):
         pl.run_parallel(importer.QUEUE_SIZE)
 
 
-def upload_files(paths, username, password):
+def upload_files(paths, output_dir, username, password):
     for path in paths:
         if not os.path.exists(syspath(normpath(path))):
             raise beets.ui.UserError(u'no such file or directory: {0}'.format(
                 displayable_path(path)))
 
-    session = UploadSession(paths, username, password)
+    session = UploadSession(paths, output_dir, username, password)
     session.run()
 
 
 def autotunes_main(args, lib=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("username")
+    parser.add_argument("-o", "--output-dir", help="the directory where torrents will be output", default="/srv/torrents")
     parser.add_argument("album", help="path to the album you want to upload", nargs="+")
     args = parser.parse_args()
     mb.configure()
     password = input("password: ")
-    upload_files(args.album, args.username, password)
+    upload_files(args.album, args.output_dir, args.username, password)
 
 
 beets.ui._raw_main = autotunes_main
