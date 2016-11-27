@@ -11,9 +11,33 @@ from beets.util import syspath, normpath, ancestry, displayable_path, pipeline
 from beets import plugins
 from pprint import pprint
 from beets.autotag import Recommendation
+from beetsplug.fetchart import FetchArtPlugin, CoverArtArchive, AlbumArtOrg, Amazon, Wikipedia, FanartTV
 import whatapi
 import requests
 import sys
+
+class AutotunesFetchArt(FetchArtPlugin):
+    def __init__(self):
+        super().__init__()
+        sources = [CoverArtArchive, AlbumArtOrg, Amazon, Wikipedia, FanartTV]
+        self.sources = [s(self._log, self.config) for s in sources]
+
+
+fetchart = AutotunesFetchArt()
+
+
+class AlbumInfoToAlbum(object):
+    def __init__(self, albuminfo):
+        self.info = albuminfo
+
+    def __getattr__(self, key):
+        if key == "albumartist":
+            key = "artist"
+        elif key == "mb_albumid":
+            key = "album_id"
+        elif key == "mb_releasegroupid":
+            key = "releasegroup_id"
+        return getattr(self.info, key)
 
 
 class NoneDict(dict):
@@ -63,8 +87,15 @@ def upload_album(session, task):
     choice = commands.choose_candidate(
         task.candidates, False, task.rec, task.cur_artist, task.cur_album,
         itemcount=len(task.items))
+    album = AlbumInfoToAlbum(choice.info)
+    image = fetchart.art_for_album(album, task.paths, False)
+    if image and image.url:
+        image_url = image.url
+        if not image_url.endswith('.jpg'):
+            image_url += '#.jpg'
+    else:
+        image_url = ""
     tags = input('tags: ').strip().split(', ')
-    image_url = input('image: ').strip()
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
     session.api.upload(album_dir, choice.info, tags, image_url)
 
