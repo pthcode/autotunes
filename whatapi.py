@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import re
 import os
+import sys
 import time
 import string
 import requests
@@ -77,6 +78,7 @@ def album_media(album):
         "Vinyl": "Vinyl",
         "12\" Vinyl": "Vinyl",
         "Digital Media": "WEB",
+        "SACD": "SACD",
         "HDCD": "SACD",
         "Hybrid SACD": "SACD",
         "Cassette": "Cassette",
@@ -177,10 +179,15 @@ class WhatAPI:
         r = self.session.post(loginpage, data=data)
         if r.status_code != 200:
             raise LoginException
-        accountinfo = self.request('index')
-        self.authkey = accountinfo['authkey']
-        self.passkey = accountinfo['passkey']
-        self.userid = accountinfo['id']
+        try:
+            accountinfo = self.request('index')
+            self.authkey = accountinfo['authkey']
+            self.passkey = accountinfo['passkey']
+            self.userid = accountinfo['id']
+        except:
+            print("unable to log in")
+            print(r.text)
+            sys.exit(1)
 
     def logout(self):
         self.session.get("https://passtheheadphones.me/logout.php?auth=%s" % self.authkey)
