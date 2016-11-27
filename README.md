@@ -13,9 +13,9 @@ Automate your music uploads.
 
 1. Install Python 3.
 2. Install the latest version of mktorrent from https://github.com/Rudde/mktorrent.
-3. Install autotunes and its dependencies with `sudo pip install </path/to/autotunes>`.
-4. Run `autotunes -o <watch_dir> <username> /path/to/album`, enter your password, and autotunes will do its magic.
-5. You can specify multiple albums at a time.
+3. Clone the repository with `git clone https://bitbucket.org/whatbetter/autotunes.git && cd autotunes`.
+4. Install the dependencies with `sudo pip3 install -r requirements.txt`.
+5. Run `python3 ./autotunes -o <watch_dir> <username> /path/to/album`, enter your password, and autotunes will do its magic. You can specify multiple albums at a time.
 
 ### Disclaimer ###
 
