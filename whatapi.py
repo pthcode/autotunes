@@ -77,6 +77,7 @@ def album_media(album):
         "Digital Media": "WEB",
         "HDCD": "SACD",
         "Hybrid SACD": "SACD",
+        "Cassette": "Cassette",
         None: "CD",
     }[album.media]
 
