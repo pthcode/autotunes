@@ -50,7 +50,7 @@ track_template = string.Template("[#]$title")
 def album_description(album):
     track_list = "\n".join([track_template.substitute(title=track.title) for track in album.tracks])
     return description_template.substitute(
-        musicbrainz_id=album.album_id,
+        musicbrainz_id=album.releasegroup_id,
         country=album.country,
         num_tracks=len(album.tracks),
         track_list=track_list
@@ -62,7 +62,8 @@ def album_release_type(album):
         "soundtrack": 3,
         "ep": 5,
         "compilation": 7,
-        "single": 9
+        "single": 9,
+        None: 1
     }[album.albumtype]
 
 def album_media(album):
@@ -72,32 +73,33 @@ def album_media(album):
 
 def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
     artists = album_artists(album)
-    data = {
-        "submit": "true",  # the submit button
-        "auth": auth,  # input name=auth on upload page - appears to not change
-        "type": 0,  # music
-        "artists[]": artists,
-        "importance[]": [1 for _ in artists],  # list of 0 for all main artists
-        "title": album.album,
-        "year": album.original_year,
-        "record_label": "",  # optional
-        "catalogue_number": "",  # optional
-        "releasetype": album_release_type(album),
-        "remaster": "on",  # if it's a remaster, off otherwise
-        "remaster_year": album.year,
-        "remaster_title": "",  # optional
-        "remaster_record_label": album.label,  # optional
-        "remaster_catalogue_number": album.catalognum,  # optional
-        "format": "FLAC",  # TODO: analyze files
-        "bitrate": "Lossless",  # TODO: analyze files
-        "other_bitrate": "",  # n/a
-        "media": album_media(album),  # or WEB, Vinyl, etc.
-        "genre_tags": tags[0],  # blank - this is the dropdown of official tags
-        "tags": ", ".join(tags),  # classical, hip.hop, etc. (comma separated)
-        "image": artwork_url,  # optional
-        "album_desc": album_description(album),
-        "release_desc": "Uploaded with [url=https://bitbucket.org/whatbetter/autotunes]autotunes[/url]."
-    }
+    data = [
+        ("submit", "true"),  # the submit button
+        ("auth", auth),  # input name=auth on upload page - appears to not change
+        ("type", "0"),  # music
+        ("title", album.album),
+        ("year", str(album.original_year)),
+        ("record_label", ""),  # optional
+        ("catalogue_number", ""),  # optional
+        ("releasetype", str(album_release_type(album))),
+        ("remaster", "on"),  # if it's a remaster, off otherwise
+        ("remaster_year", str(album.year)),
+        ("remaster_title", ""),  # optional
+        ("remaster_record_label", album.label),  # optional
+        ("remaster_catalogue_number", album.catalognum),  # optional
+        ("format", "FLAC"),  # TODO: analyze files
+        ("bitrate", "Lossless"),  # TODO: analyze files
+        ("other_bitrate", ""),  # n/a
+        ("media", album_media(album)),  # or WEB, Vinyl, etc.
+        ("genre_tags", tags[0]),  # blank - this is the dropdown of official tags
+        ("tags", "), ".join(tags)),  # classical, hip.hop, etc. (comma separated)
+        ("image", artwork_url),  # optional
+        ("album_desc", album_description(album)),
+        ("release_desc", "Uploaded with [url=https://bitbucket.org/whatbetter/autotunes]autotunes[/url].")
+    ]
+    for artist in artists:
+        data.append(("artists[]", artist))
+        data.append(("importance[]", "1"))
     files = []
     for logfile in logfiles:
         files.append(("logfiles[]", logfile))
@@ -240,9 +242,9 @@ class WhatAPI:
     def upload(self, album_dir, album, tags, artwork_url):
         url = "https://passtheheadphones.me/upload.php"
         torrent = make_torrent(album_dir, "/tmp", self.tracker, self.passkey)
-        torrent = (os.path.basename(torrent), open(torrent, 'rb'), "application/octet-stream")
+        torrent = ('torrent.torrent', open(torrent, 'rb'), "application/octet-stream")
         logfiles = locate(album_dir, ext_matcher('.log'))
-        logfiles = [(os.path.basename(logfile), open(logfile, 'rb'), "application/octet-stream") for logfile in logfiles]
+        logfiles = [(str(i) + '.log', open(logfile, 'rb'), "application/octet-stream") for i, logfile in enumerate(logfiles)]
         r = self.session.get(url)
         auth = re.search('name="auth" value="([^"]+)"', r.text).group(1)
         data, files = create_upload_request(auth, album, torrent, logfiles, tags, artwork_url)
@@ -253,6 +255,9 @@ class WhatAPI:
         if "torrent has been uploaded" not in r.text:
             from pprint import pprint
             print("upload failed.")
+            pprint(album.__dict__)
+            pprint(data)
+            pprint(files)
             pprint(r.headers)
             print(r.text)
 
