@@ -76,6 +76,7 @@ def album_media(album):
         "CD-R": "CD",
         "Enhanced CD": "CD",
         "HDCD": "CD",
+        "DualDisc": "CD",
         "Vinyl": "Vinyl",
         "12\" Vinyl": "Vinyl",
         "Digital Media": "WEB",
