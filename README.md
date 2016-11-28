@@ -28,3 +28,4 @@ Automate your music uploads.
 
 * Apply correct metadata to torrents.
 * Update the folder name to Artist - Album (ReleaseYear) [Format] {CatalogNum}
+* Discogs support.
