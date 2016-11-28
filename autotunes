@@ -91,7 +91,11 @@ def user_query(session, task):
     if not isinstance(choice, AlbumMatch):
         return
     if not choice.info.year and not choice.info.original_year:
-        choice.info.original_year = choice.info.year = get_year(task.toppath)
+        try:
+            choice.info.original_year = choice.info.year = get_year(task.toppath)
+        except:
+            # year not found - skip it
+            return
     #resolve_duplicates(session, task)
     upload_album(session, task, choice)
 
