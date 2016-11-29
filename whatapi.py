@@ -286,3 +286,7 @@ class WhatAPI:
 
     def permalink(self, torrent):
         return "https://passtheheadphones.me/torrents.php?torrentid=%s" % torrent['id']
+
+    def is_duplicate(self, album):
+        # TODO
+        return False

@@ -2,19 +2,14 @@
 import os.path
 import argparse
 import beets.ui
-from beets import config
 from beets.autotag import mb
 from beets.ui.commands import TerminalImportSession
-from beets.ui import print_, input_, decargs, show_path_changes, commands
 from beets import importer
-from beets.util import syspath, normpath, ancestry, displayable_path, pipeline
-from beets import plugins
-from pprint import pprint
-from beets.autotag import Recommendation, AlbumMatch
+from beets.util import syspath, normpath, displayable_path, pipeline
+from beets.autotag import AlbumMatch
 from beetsplug.fetchart import FetchArtPlugin, CoverArtArchive, AlbumArtOrg, Amazon, Wikipedia, FanartTV
 from beetsplug.lastgenre import LastGenrePlugin, LASTFM
 import whatapi
-import requests
 import sys
 import re
 
@@ -22,8 +17,20 @@ import re
 def get_year(path):
     return int(re.search('\d{4}', path.decode(sys.getfilesystemencoding())).group(0))
 
+
 lastgenre = LastGenrePlugin()
-valid_tags = set(['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', 'alternative', 'ambient', 'black.metal', 'blues', 'classical', 'comedy', 'country', 'death.metal', 'deep.house', 'downtempo', 'drum.and.bass', 'dub', 'dubstep', 'electronic', 'experimental', 'folk', 'funk', 'gospel', 'grime', 'heavy.metal', 'hip.hop', 'house', 'idm', 'indie', 'instrumental', 'jazz', 'live', 'metal', 'noise', 'pop', 'pop.rock', 'post.punk', 'progressive.rock', 'psychedelic', 'punk', 'reggae', 'rhythm.and.blues', 'rock', 'shoegaze', 'ska', 'soul', 'synth.pop', 'techno', 'trance', 'video.game'])
+
+
+valid_tags = set([
+    '1960s', '1970s', '1980s', '1990s', '2000s', '2010s', 'alternative', 'ambient', 'black.metal', 'blues', 'classical',
+    'comedy', 'country', 'death.metal', 'deep.house', 'downtempo', 'drum.and.bass', 'dub', 'dubstep', 'electronic',
+    'experimental', 'folk', 'funk', 'gospel', 'grime', 'heavy.metal', 'hip.hop', 'house', 'idm', 'indie',
+    'instrumental', 'jazz', 'live', 'metal', 'noise', 'pop', 'pop.rock', 'post.punk', 'progressive.rock', 'psychedelic',
+    'punk', 'reggae', 'rhythm.and.blues', 'rock', 'shoegaze', 'ska', 'soul', 'synth.pop', 'techno', 'trance',
+    'video.game'
+])
+
+
 def get_tags(album):
     last_obj = LASTFM.get_album(album.albumartist, album.album)
     result = set()
@@ -36,6 +43,7 @@ def get_tags(album):
             if tag in valid_tags:
                 result.add(tag)
     return list(result)[:5]
+
 
 class AutotunesFetchArt(FetchArtPlugin):
     def __init__(self):
@@ -65,51 +73,38 @@ class NoneDict(dict):
     def __getitem__(self, key):
         return self.get(key)
 
-@pipeline.stage
-def resolve_duplicates(session, task):
-    # TODO: check if it's already been uploaded
-    return task
-
 
 @pipeline.stage
-def user_query(session, task):
-    """A coroutine for interfacing with the user about the tagging
-    process.
-
-    The coroutine accepts an ImportTask objects. It uses the
-    session's `choose_match` method to determine the `action` for
-    this task. Depending on the action additional stages are executed
-    and the processed task is yielded.
-
-    It emits the ``import_task_choice`` event for plugins. Plugins have
-    acces to the choice via the ``taks.choice_flag`` property and may
-    choose to change it.
-    """
+def process_album(session, task):
     if not task or task.skip:
         return
+
     choice = session.choose_match(task)
     if not isinstance(choice, AlbumMatch):
         return
+
     if not choice.info.year and not choice.info.original_year:
         try:
             choice.info.original_year = choice.info.year = get_year(task.toppath)
         except:
             # year not found - skip it
             return
-    #resolve_duplicates(session, task)
-    upload_album(session, task, choice)
 
+    album = AlbumInfoToAlbum(choice.info)
+    if not session.api.is_duplicate(album):
+        upload_album(session, task, album)
 
 
 @pipeline.stage
 def lookup_candidates(session, task):
-    if not task or task.skip: return
+    if not task or task.skip:
+        return
+
     task.lookup_candidates()
     return task
 
 
-def upload_album(session, task, choice):
-    album = AlbumInfoToAlbum(choice.info)
+def upload_album(session, task, album):
     image = fetchart.art_for_album(album, task.paths, False)
     if image and image.url:
         image_url = image.url
@@ -121,7 +116,7 @@ def upload_album(session, task, choice):
     if len(tags) == 0:
         tags = input("tags: ").split(", ")
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
-    session.api.upload(album_dir, session.output_dir, choice.info, tags, image_url)
+    session.api.upload(album_dir, session.output_dir, album, tags, image_url)
 
 
 class UploadSession(TerminalImportSession):
@@ -136,7 +131,7 @@ class UploadSession(TerminalImportSession):
         stages = [
             importer.read_tasks(self),
             lookup_candidates(self),
-            user_query(self)
+            process_album(self)
         ]
         pl = pipeline.Pipeline(stages)
         pl.run_parallel(importer.QUEUE_SIZE)
@@ -155,7 +150,9 @@ def upload_files(paths, output_dir, username, password):
 def autotunes_main(args, lib=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("username")
-    parser.add_argument("-o", "--output-dir", help="the directory where torrents will be output", default="/srv/torrents")
+    parser.add_argument("-o", "--output-dir",
+                        help="the directory where torrents will be output",
+                        default="/srv/torrents")
     parser.add_argument("album", help="path to the album you want to upload", nargs="+")
     args = parser.parse_args()
     mb.configure()
