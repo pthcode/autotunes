@@ -77,6 +77,7 @@ def album_media(album):
         "Enhanced CD": "CD",
         "HDCD": "CD",
         "DualDisc": "CD",
+        "Copy Control CD": "CD",
         "Vinyl": "Vinyl",
         "12\" Vinyl": "Vinyl",
         "Digital Media": "WEB",
