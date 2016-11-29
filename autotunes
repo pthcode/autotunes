@@ -1,17 +1,20 @@
 #!/usr/bin/env python
-import os.path
 import argparse
 import beets.ui
-from beets.autotag import mb
-from beets.ui.commands import TerminalImportSession
-from beets import importer
-from beets.util import syspath, normpath, displayable_path, pipeline
+import os.path
+import re
+import shutil
+import string
+import sys
+import textwrap
+import whatapi
 from beets.autotag import AlbumMatch
+from beets.autotag import mb
+from beets import importer
 from beetsplug.fetchart import FetchArtPlugin, CoverArtArchive, AlbumArtOrg, Amazon, Wikipedia, FanartTV
 from beetsplug.lastgenre import LastGenrePlugin, LASTFM
-import whatapi
-import sys
-import re
+from beets.ui.commands import TerminalImportSession
+from beets.util import syspath, normpath, displayable_path, pipeline, sanitize_path
 
 
 def get_year(path):
@@ -104,6 +107,26 @@ def lookup_candidates(session, task):
     return task
 
 
+album_template = string.Template("$artist - $album ($year) [$format]")
+
+
+def rename_album(album, album_dir):
+    # TODO: more intelligent truncation
+    path = album_template.substitute(
+        artist=textwrap.shorten(album.artist, width=50, placeholder="_"),
+        album=textwrap.shorten(album.album, width=40, placeholder="_"),
+        year=album.year,
+        format="FLAC"  # TODO
+    )
+    if album.catalognum:
+        path += " {" + album.catalognum + "}"
+    path = path.replace("/", "_").replace("\\", "_")
+    path = sanitize_path(path)
+    path = os.path.normpath(os.path.join(os.path.join(album_dir, ".."), path))
+    shutil.move(album_dir, path)
+    return path
+
+
 def upload_album(session, task, album):
     image = fetchart.art_for_album(album, task.paths, False)
     if image and image.url:
@@ -116,6 +139,7 @@ def upload_album(session, task, album):
     if len(tags) == 0:
         tags = input("tags: ").split(", ")
     album_dir = task.toppath.decode(sys.getfilesystemencoding())
+    album_dir = rename_album(album, album_dir)
     session.api.upload(album_dir, session.output_dir, album, tags, image_url)
 
 

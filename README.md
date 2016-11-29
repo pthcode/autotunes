@@ -27,6 +27,5 @@ Automate your music uploads.
 ### Roadmap ###
 
 * Apply correct metadata to torrents.
-* Update the folder name to Artist - Album (ReleaseYear) [Format] {CatalogNum}
 * Discogs support.
 * Improved matching function which takes .log and .cue files, catalog numbers and years in folder names, and file types into account.
