@@ -121,8 +121,12 @@ def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
         ("release_desc", "Uploaded with [url=https://bitbucket.org/whatbetter/autotunes]autotunes[/url].")
     ]
     for artist in artists:
+        importance = 1
+        if " feat. " in artist:
+            artist = artist.split(" feat. ")[1]
+            importance = 2
         data.append(("artists[]", artist))
-        data.append(("importance[]", "1"))
+        data.append(("importance[]", importance))
     files = []
     for logfile in logfiles:
         files.append(("logfiles[]", logfile))

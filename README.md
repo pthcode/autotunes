@@ -22,7 +22,6 @@ Automate your music uploads.
 * Dupe-checking is not yet implemented.
 * Only works with FLAC for now.
 * autotunes is provided for demonstration purposes only.
-* feat. artists are not correctly parsed yet.
 
 ### Roadmap ###
 
