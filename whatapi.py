@@ -86,8 +86,16 @@ def album_media(album):
         None: "CD",
     }[album.media]
 
+def remaster_status(album):
+    if album.original_year is None:
+        return None
+    if album.original_year == album.year:
+        return None
+    return "on"
+
 def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
     artists = album_artists(album)
+    remaster = remaster_status(album)
     data = [
         ("submit", "true"),  # the submit button
         ("auth", auth),  # input name=auth on upload page - appears to not change
@@ -97,7 +105,7 @@ def create_upload_request(auth, album, torrent, logfiles, tags, artwork_url):
         ("record_label", ""),  # optional
         ("catalogue_number", ""),  # optional
         ("releasetype", str(album_release_type(album))),
-        ("remaster", "on"),  # if it's a remaster, off otherwise
+        ("remaster", remaster),  # if it's a remaster, excluded otherwise
         ("remaster_year", str(album.year)),
         ("remaster_title", ""),  # optional
         ("remaster_record_label", album.label),  # optional
