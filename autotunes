@@ -185,6 +185,7 @@ def autotunes_main(args, lib=None):
 
 
 beets.ui._raw_main = autotunes_main
+beets.ui.commands._summary_judgment = lambda _: None
 
 if __name__ == "__main__":
     beets.ui.main()
