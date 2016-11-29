@@ -158,24 +158,24 @@ def choose_candidate(candidates, singleton, rec, cur_artist=None,
 
             print_(u' '.join(line))
 
-            # Ask the user for a choice.
-            opts = (u'Skip', u'Enter search', u'enter Id', u'aBort')
-            sel = ui.input_options(opts,
-                                   numrange=(1, len(candidates)))
-            if sel == u's':
-                return importer.action.SKIP
-            elif sel == u'e':
-                return importer.action.MANUAL
-            elif sel == u'b':
-                raise importer.ImportAbort()
-            elif sel == u'i':
-                return importer.action.MANUAL_ID
-            else:  # Numerical selection.
-                match = candidates[sel - 1]
-                if sel != 1:
-                    # When choosing anything but the first match,
-                    # disable the default action.
-                    require = True
+        # Ask the user for a choice.
+        opts = (u'Skip', u'Enter search', u'enter Id', u'aBort')
+        sel = ui.input_options(opts,
+                               numrange=(1, len(candidates)))
+        if sel == u's':
+            return importer.action.SKIP
+        elif sel == u'e':
+            return importer.action.MANUAL
+        elif sel == u'b':
+            raise importer.ImportAbort()
+        elif sel == u'i':
+            return importer.action.MANUAL_ID
+        else:  # Numerical selection.
+            match = candidates[sel - 1]
+            if sel != 1:
+                # When choosing anything but the first match,
+                # disable the default action.
+                require = True
 
         # Show what we're about to do.
         show_change(cur_artist, cur_album, match)
