@@ -12,19 +12,16 @@ Automate your music uploads.
 ### How do I get set up? ###
 
 1. Install Python 3.
-2. Install the latest version of mktorrent from https://github.com/Rudde/mktorrent.
-3. Clone the repository with `git clone https://bitbucket.org/whatbetter/autotunes.git && cd autotunes`.
-4. Install the dependencies with `sudo pip3 install -r requirements.txt`.
-5. Run `python3 ./autotunes -o <watch_dir> <username> /path/to/album`, enter your password, and autotunes will do its magic. You can specify multiple albums at a time.
+2. Clone the repository with `git clone https://github.com/pthcode/autotunes.git && cd autotunes`.
+3. Install the dependencies with `pip3 install -r requirements.txt`.
+4. Run `python3 ./autotunes.py -o <watch_dir> <username> /path/to/album`, enter your password, and autotunes will do its magic. You can specify multiple albums at a time.
 
 ### Disclaimer ###
 
 * Dupe-checking is not yet implemented.
-* Only works with FLAC for now.
 * autotunes is provided for demonstration purposes only.
 
 ### Roadmap ###
 
-* Apply correct metadata to torrents.
 * Discogs support.
 * Improved matching function which takes .log and .cue files, catalog numbers and years in folder names, and file types into account.
