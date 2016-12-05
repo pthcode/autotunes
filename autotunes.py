@@ -6,13 +6,13 @@ import libpth.tagging
 import libpth.utils
 
 
-def upload_release(release, api, data_dir=None, torrent_dir=None):
+def upload_release(release, api, data_dir=None, torrent_dir=None, copy=False):
     release.artwork_url = libpth.identify.fetch_artwork(release)
     release.tags = libpth.identify.fetch_tags(release)
     if len(release.tags) == 0:
         release.tags = input('tags: ').split(', ')
     libpth.tagging.apply_metadata(release)
-    libpth.tagging.fix_release_filenames(release, directory=data_dir)
+    libpth.tagging.fix_release_filenames(release, directory=data_dir, copy=copy)
     release.torrent = libpth.utils.make_torrent(release.path, api.passkey, output_dir=torrent_dir)
     api.upload(release, 'Uploaded with [url=https://github.com/pthcode/autotunes]autotunes[/url].')
 
@@ -25,12 +25,15 @@ def main():
     parser.add_argument('-o', '--torrent-dir',
                         help='the directory where torrents will be output',
                         default='/srv/torrents')
+    parser.add_argument('-c', '--copy',
+                        help='copy files instead of moving them',
+                        action='store_true')
     parser.add_argument('album', help='path to the album(s) you want to upload', nargs='+')
     args = parser.parse_args()
     password = input('password: ')
     api = libpth.api.API(args.username, password)
     libpth.identify.identify_releases(args.album, callback=lambda release:
-                                      upload_release(release, api, args.data_dir, args.torrent_dir))
+                                      upload_release(release, api, args.data_dir, args.torrent_dir, args.copy))
 
 
 if __name__ == '__main__':
